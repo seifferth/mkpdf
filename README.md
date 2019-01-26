@@ -15,7 +15,11 @@ There is a package in the AUR, so use something like `pacaur -S mkpdf`
 ### Debian
 
 Run `make deb` to create a package for debian. Or just download an
-already-built package from the releases page.
+already-built package from the releases page. To build the debian package,
+the following additional dependencies need to be satisfied:
+
+- dpkg
+- fakeroot
 
 ### Ubuntu or Linux Mint
 
