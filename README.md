@@ -50,11 +50,12 @@ run `sudo make install` to set everything up.
 
 ## Dependencies
 
-Of course this program depends on
+The main dependencies are:
 
 - pandoc
 - latexmk
 - texlive (or probably even some other latex distribution)
+- biber (if any bibliography is to be resolved)
 
 Also some basic command line utils are used, but these should be included
 in every GNU/Linux system by default. Please drop me a message, if this is
