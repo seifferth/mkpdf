@@ -1,0 +1,446 @@
+#!/bin/sh
+
+####################################
+##	License
+####################################
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+####################################
+##  (Default) Configuration
+####################################
+
+tmpdir="/tmp/mkpdf-$(id -u)"
+pandoc_options="$pandoc_options --file-scope --biblatex --wrap=preserve"
+#if test "$(which pandoc-crossref 2>/dev/null)"; then
+#    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
+#fi
+
+postprocessing() {
+    test "$(which furbishtex 2>/dev/null)" && furbishtex "$1"
+}
+
+# Source user-specific configuration
+test -f "$HOME/.config/mkpdfrc" && . "$HOME/.config/mkpdfrc"
+
+####################################
+##	Major Functions
+####################################
+
+print_help() {
+cat <<EOF
+Usage: mkpdf [options] <directory>
+   Or: mkpdf [options] <files>
+
+Options:
+  -c  --clean           Remove temporary files before running
+                        latexmk
+  -d  --debug           Do not hide latexmk's output
+  -o  --output          Specify a name for the output file
+  -p  --preview         Open pdf once generated
+  -t  --template        Specify a template to use with pandoc
+  -h  --help            Print this help message and exit
+
+Pandoc-Options:
+  -M  --metadata        These options will be passed on to pandoc.
+                        Please refer to pandoc's documentation for
+                        further information on what they do.
+
+Specifying templates:
+    If no template is set from the command line, mkpdf will check
+    metadata from input files for a field named 'template' and use
+    it's value as the template name. If multiple templates are
+    specified, any but the first one will be ignored.
+
+EOF
+}
+
+clean_all() {
+    if test -d "$tmpdir"; then
+        rm -r "$tmpdir" && echo "Successfully removed all temporary files"
+    else
+        echo "No files left to remove"
+    fi
+}
+
+debug_log_loop() {
+    while true; do
+        find "$tmpdir" | grep latexmk.log | while read logfile; do
+        if test "$(cat $logfile | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')"; then
+            echo "$logfile"
+            echo "    is clean (i. e. latexmk finished ok)"
+            echo
+        else
+            cat $logfile
+            echo
+            echo -------------------------------
+            echo Above is the content of $logfile
+            echo -------------------------------
+            read -p "Hit Enter to search for further errors" x </dev/tty
+            echo
+            echo
+            echo
+        fi
+        done
+        echo
+        echo     ______________________
+        read -p "Hit Enter to run again" x </dev/tty
+        echo
+        echo
+        echo
+    done
+}
+
+check_filenames() {
+    # Input:    list of filenames as $1, $2, ...
+    # Output:   None, but files will be appended to $filenames if they exist
+    while test $# -gt 0; do
+        if test -f "$1"; then
+            if test "$(echo $1 | grep '[[:space:]]')"; then
+                echo Filenames containing whitespace are currently not >&2
+                echo supported. Please rename \'$1\'. >&2
+                exit 1
+            fi
+            filenames="$filenames '$1'"
+            shift
+        else
+            echo File not found: $1 >&2
+            exit 1
+        fi
+    done
+}
+
+is_bibtex() {
+    # Input:    single filename as $1
+    # Output:   returns 0 if file is bibtex, 1 otherwise
+    if test "$(echo $1 | tail -c5)" = ".bib"; then
+        return 0
+    elif test "$(echo $1 | tail -c8)" = ".bibtex"; then
+        return 0
+    elif test "$(echo $1 | tail -c10)" = ".biblatex"; then
+        return 0
+    elif test "$(file $1 | grep "BibTeX")"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_bibtex() {
+    # Input:    list of filenames as $1, $2, ...
+    # Output:   None, but exit 1 if any of the files isn't bibtex
+    #           filenames will be appended to pandoc-options as bibliography
+    while test $# -gt 0; do
+        if is_bibtex "$1"; then
+            pandoc_options="$pandoc_options -M bibliography='$1'"
+        else
+            echo Not a BibTeX file: $1 >&2
+            echo Mixing of BibTeX and non-BibTeX files as >&2
+            echo input is not supported. >&2
+            exit 1
+        fi
+        shift
+    done
+}
+
+parse_commandline() {
+    get_codename() {
+        codename="$(echo $1 | rev | cut -d '/' -f 1 | rev | cut -d '.' -f 1 |
+                        sed 's/^ *//g' | sed 's/ *$//g' | tr ' ' '_')"
+    }
+    preprocess_commandline() {
+        longopts=help,clean,debug,output:,preview,template:,metadata:
+        shortopts=hcdo:pt:M:
+        getopt -o $shortopts -l $longopts -- "$@"
+    }
+    interpret_commandline() {
+        if test $# = 2; then        # Partial runs for specific single options
+            case "$1" in
+                -c | --clean )
+                    clean_all
+                    exit 0  ;;
+                -d | --debug )
+                    debug_log_loop
+                    exit 0  ;;
+            esac
+        fi
+        while true; do              # Main options
+            case "$1" in
+                # Proper Options
+                -h | --help )
+                    print_help
+                    exit 0  ;;
+                -c | --clean )
+                    clean=1
+                    shift   ;;
+                -d | --debug )
+                    debug=1
+                    shift   ;;
+                -o | --output )
+                    output="$output '$2'"
+                    shift 2 ;;
+                -p | --preview )
+                    preview=1
+                    shift   ;;
+                -t | --template )
+                    template="$template '$2'"
+                    shift 2 ;;
+                # Pandoc-Options
+                -M | --metadata )
+                    pandoc_metavars="$pandoc_metavars $1 '$2'"
+                    shift 2 ;;
+                # Concluding remarks
+                -- )
+                    shift; break;;
+                * )
+                    echo Errors occured while parsing command line options
+                    echo Remaining arguments: $@
+                    exit 1  ;;
+            esac
+        done
+        if test $# = 0; then            # Defaults if no filename is specified
+            if test -f "toc.conf"; then
+                mode=dir
+                tocdir='.'
+                get_codename "$(realpath "$tocdir")"
+            else
+                echo Missing argument: No files or directory specified >&2
+                exit 1
+            fi
+        elif test -d "$1"; then         # Else Parse dir- or filenames
+            mode=dir
+            tocdir="$1"
+            shift
+            if test $# -gt 0; then
+                echo mkpdf can only take one argument in directory mode >&2
+                exit 1
+            fi
+            get_codename "$(realpath "$tocdir")"
+        elif test -f "$1"; then
+            check_filenames "$@"
+            eval get_codename $filenames
+            if is_bibtex "$1"; then
+                mode=bib
+                check_bibtex "$@"
+            else
+                mode=files
+            fi
+        else
+            echo No such file or directory: $1 >&2
+            exit 1
+        fi
+    }
+    # eval to have args accessible as $1, $2 ...
+    eval interpret_commandline $(preprocess_commandline "$@")
+}
+
+read_toc() {
+    # Input:  $1:   runmode (files, meta)
+    #         $2:   toc-filename
+    # Output:   string (of files or YAML-metadata)
+    test $1 = meta && echo ---
+    if test $1 = meta; then
+        cat_toc() {
+            cat "$1"    # Do not strip comments
+        }
+        OLDIFS="$IFS"
+        IFS=""      # Make sure whitespace is preserved by read
+    else
+        cat_toc() {
+            cat "$1" | sed 's/#.*//g'   # Strip comments
+        }
+    fi
+    cat_toc "$2" | while read line; do
+        if test "$yaml_block" = 1; then
+            if test "$line" = "---" || test "$line" = "..."; then
+                 unset yaml_block
+            else
+                # This line contains metadata
+                test $1 = meta && echo "$line"
+            fi
+        else
+            if test "$line" = "---"; then
+                yaml_block=1
+            elif test "$line"; then
+                # The line contains a filename
+                test $1 = files && echo -n "'$line' "
+            fi
+        fi
+    done
+    test $1 = meta && echo ---
+    test $1 = meta && IFS="$OLDIFS"
+}
+
+get_first_arg() {
+    echo "$1"
+}
+
+get_extension() {
+    echo "$1" | rev | cut -d '.' -f 1 | rev
+}
+
+get_metadata() {
+    # Input:    $1: Variable name (e. g. lang)
+    #         Rest: Files to check
+    # Output:       variable(s) in a form eval can understand
+    if ! test "$tmpdir" || ! test -d "$tmpdir"; then
+        echo Internal Error: tmpdir must be set up before calling get_metadata >&2
+        exit 1
+    fi
+    # $if(var)$'$for(var)$$var$$sep$' '$endfor$'$endif$
+    echo "\$if($1)\$"\'"\$for($1)\$\$$1\$\$sep\$"\'" "\'"\$endfor\$"\'"\$endif\$" > "$tmpdir/get_metadata.plain"
+    shift
+    eval pandoc $pandoc_metavars --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@ 2>/dev/null
+}
+
+get_engine() {
+    # Input:    path to master.tex file as $1
+    # Output:   latexmk option specifying the correct engine
+    magic_line="$(cat "$1" | grep -i '% *! *TEX *program *=' | head -1)"
+    if test "$(echo "$magic_line" | grep -i 'xelatex')"; then
+        echo --xelatex
+    elif test "$(echo "$magic_line" | grep -i 'lualatex')"; then
+        echo --lualatex
+    elif test "$(echo "$magic_line" | grep -i 'pdflatex')"; then
+        echo --pdf
+    else        # Default engine
+        echo --xelatex
+    fi
+}
+
+####################################
+##	Main Part
+####################################
+
+parse_commandline "$@"      # Self-explaining
+if test $mode = dir; then   # Find toc and read files (dir mode only)
+    if test -f "$tocdir/toc.conf"; then
+        origin="$PWD"
+        cd "$tocdir"
+        eval check_filenames "$(read_toc 'files' 'toc.conf')"
+    else
+        echo There is no toc.conf in $tocdir >&2
+        exit 1
+    fi
+fi
+
+# Set up tmpdir
+tmpdir="$tmpdir/$codename"
+mkdir -p "$tmpdir"
+
+if test $mode = dir; then   # Extract Metadata from toc.conf
+    read_toc 'meta' 'toc.conf' > "$tmpdir/head.md"
+    filenames="'$tmpdir/head.md' $filenames"
+elif test $mode = bib; then # Write a dummy file and set as filenames
+    eval cat $filenames | head -3 | grep '^%' > "$tmpdir/dummy.md"
+    printf '\n\\nocite{*}\n' >> "$tmpdir/dummy.md"
+    pandoc_options="$pandoc_options -M biblio-title=' '" # Use nbsp as biblio-title
+    if ! test "$(get_metadata title "$tmpdir/dummy.md")"; then
+        pandoc_options="$pandoc_options -M title='$(eval ls -m $filenames)'"
+    fi
+    filenames="'$tmpdir/dummy.md'"
+    test "$default_bib_template" && default_template="$default_bib_template"
+fi
+
+# Guess language if not set in metadata
+if python3 -c "import langdetect" 2>/dev/null; then
+    if ! test "$(eval get_metadata lang $filenames)"; then
+        printf "Detecting language ..."
+        if test "$mode" = bib; then
+            detect_from=title
+        else
+            detect_from=body
+        fi
+lang="$(eval get_metadata $detect_from $filenames | python3 -c '
+from sys import stdin
+from langdetect import detect
+print(detect(stdin.read()))
+' 2>/dev/null)"
+        if test "$lang"; then
+            printf "\b\b\b\b: $lang\n"
+            pandoc_metavars="$pandoc_metavars -M lang=$lang"
+        else
+            printf " failed\n"
+        fi
+    fi
+fi
+
+echo Converting files to latex
+# Get template if missing
+if ! test "$template"; then     # Check metadata
+    template="$(eval get_metadata template $filenames)"
+fi
+if ! test "$template"; then     # Check defaults
+    test "$default_template" && template="'$default_template'"
+fi
+# Make sure template is set
+if test "$template"; then       # Ensure max one template is set
+    template="$(eval get_first_arg $template)"
+else                            # Ensure at least one template is set
+    template="default.latex"
+fi
+# Set up subdir if missing
+subdir="$(echo $template | rev | cut -d '/' -f 1 | rev)"
+test -d "$tmpdir/$subdir" || mkdir -p "$tmpdir/$subdir"
+# Run pandoc
+master_tex="$tmpdir/$subdir/master.tex"
+if test "$(get_extension $template)" = "beamer"; then
+    pandoc_options="-t beamer $pandoc_options"
+else
+    pandoc_options="-t latex $pandoc_options"
+fi
+echo "--template=\"$template\" $pandoc_metavars $pandoc_options" > $tmpdir/$subdir/pandoc.options
+eval pandoc --template="$template" $pandoc_metavars $pandoc_options $filenames \
+        -o "$master_tex" || exit 1
+
+# Run postprocessing (if any)
+if test "$(type postprocessing 2>/dev/null | grep function)"; then
+    echo Postprocessing pandoc output
+    postprocessing "$master_tex"
+fi
+
+# Set up / clean latexmk-specific tmpdir
+tmpdir_mk="$tmpdir/$subdir/latexmk"
+if test "$clean" && test -d "$tmpdir_mk"; then
+    echo Removing temporary files
+    rm -rf "$tmpdir_mk"
+fi
+test ! -d "$tmpdir_mk" && mkdir "$tmpdir_mk"
+# Run latexmk
+echo Running latexmk ...
+test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
+engine="$(get_engine "$master_tex")"
+if test "$debug"; then
+    latexmk $engine --outdir="$tmpdir_mk" "$master_tex"
+else
+    latexmk_log="$tmpdir/$subdir/latexmk.log"
+    latexmk $engine --interaction=nonstopmode --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
+fi
+# Exit on Error
+if ! test -f "$tmpdir_mk/master.pdf"; then
+    echo Latexmk failed to generate output >&2
+    exit 1
+fi
+
+# Copy output to destination (and maybe preview)
+if test "$output"; then
+    output="$(eval get_first_arg $output)"
+else
+    output="$codename.pdf"
+fi
+echo Exporting output: $output
+test $mode = dir && cd "$origin"
+cp -f "$tmpdir_mk/master.pdf" "$output"
+test "$preview" && nohup xdg-open "$output" >/dev/null 2>&1
+
+exit 0
