@@ -1,0 +1,11 @@
+Package: mkpdf
+Version: 0.3.1-1
+Architecture: all
+Maintainer: Frank Seifferth <frankseifferth@posteo.net>
+Depends: pandoc, latexmk
+Provides:
+Recommends: texlive-full
+Suggests: pandoc-crossref
+Section:
+Priority: optional
+Description: A simple wrapper around pandoc and latexmk

@@ -13,3 +13,6 @@ install: mkpdf furbishtex/furbishtex furbishtex/default.sed mkpdf.1.gz
 remove:
 	rm -rf /usr/bin/mkpdf /usr/bin/furbishtex /usr/lib/furbishtex /usr/share/man/man1/mkpdf.1.gz
 
+deb: deb/mkpdf_all.deb
+deb/mkpdf_all.deb: deb/control mkpdf furbishtex/furbishtex furbishtex/default.sed mkpdf.1.gz
+	cd deb/ && fakeroot ./make_deb.sh
