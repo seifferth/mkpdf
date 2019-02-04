@@ -102,3 +102,8 @@ Specifying templates:
 
 Further information can be found in [docs.md](docs.md), which can also be used
 to generate a manpage.
+
+## Known Issues
+
+- Long options will only work if the gnu version of getopt is available
+  on the system. Otherwise only short options will be supported.

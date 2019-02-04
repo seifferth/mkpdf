@@ -161,7 +161,11 @@ parse_commandline() {
     preprocess_commandline() {
         longopts=help,clean,debug,output:,preview,template:,metadata:
         shortopts=hcdo:pt:M:
-        getopt -o $shortopts -l $longopts -- "$@"
+        if test "$(getopt -V | grep 'util-linux')"; then
+            getopt -o $shortopts -l $longopts -- "$@"
+        else
+            getopt $shortopts "$@"
+        fi
     }
     interpret_commandline() {
         if test $# = 2; then        # Partial runs for specific single options
