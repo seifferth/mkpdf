@@ -454,7 +454,7 @@ if test "$preview"; then
         open_command=open
     fi
     if test "$open_command"; then
-        nohup "$open_command" "$output" >/dev/null 2>&1
+        nohup "$open_command" "$output" >/dev/null 2>&1 &
     else
         echo "No command found for opening preview" >&2
     fi
