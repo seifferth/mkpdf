@@ -38,5 +38,7 @@ for idx in "${!conf[@]}"; do
 
 done
 
-sed -i $scripts $files
-
+for f in $files; do
+    cat "$f" | sed $scripts > "$f".sed_modified
+    mv "$f".sed_modified "$f"
+done
