@@ -1,5 +1,5 @@
 Package: mkpdf
-Version: 0.3.1-1
+Version: 0.3.2-1
 Architecture: all
 Maintainer: Frank Seifferth <frankseifferth@posteo.net>
 Depends: pandoc, latexmk
