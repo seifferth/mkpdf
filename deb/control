@@ -2,9 +2,9 @@ Package: mkpdf
 Version: 0.3.2-1
 Architecture: all
 Maintainer: Frank Seifferth <frankseifferth@posteo.net>
-Depends: pandoc, latexmk
+Depends: pandoc, texlive-full, biber
 Provides:
-Recommends: texlive-full
+Recommends:
 Suggests: pandoc-crossref
 Section:
 Priority: optional
