@@ -252,37 +252,36 @@ read_toc() {
     # Input:  $1:   runmode (files, meta)
     #         $2:   toc-filename
     # Output:   string (of files or YAML-metadata)
-    test $1 = meta && echo ---
     if test $1 = meta; then
         cat_toc() {
             cat "$1"    # Do not strip comments
+            echo    # Fix missing newline at end of file
         }
-        OLDIFS="$IFS"
-        IFS=""      # Make sure whitespace is preserved by read
     else
         cat_toc() {
             cat "$1" | sed 's/#.*//g'   # Strip comments
+            echo    # Fix missing newline at end of file
         }
     fi
     cat_toc "$2" | while read line; do
         if test "$yaml_block" = 1; then
             if test "$line" = "---" || test "$line" = "..."; then
-                 unset yaml_block
+                test $1 = meta && echo "$line" && echo
+                unset yaml_block
             else
                 # This line contains metadata
                 test $1 = meta && echo "$line"
             fi
         else
             if test "$line" = "---"; then
+                test $1 = meta && echo && echo "$line"
                 yaml_block=1
             elif test "$line"; then
                 # The line contains a filename
-                test $1 = files && echo -n "'$line' "
+                test $1 = files && echo "$line"
             fi
         fi
     done
-    test $1 = meta && echo ---
-    test $1 = meta && IFS="$OLDIFS"
 }
 
 get_first_arg() {
@@ -331,7 +330,7 @@ if test $mode = dir; then   # Find toc and read files (dir mode only)
     if test -f "$tocdir/toc.conf"; then
         origin="$PWD"
         cd "$tocdir"
-        eval check_filenames "$(read_toc 'files' 'toc.conf')"
+        check_filenames $(read_toc 'files' 'toc.conf')
     else
         echo There is no toc.conf in $tocdir >&2
         exit 1
