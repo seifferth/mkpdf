@@ -427,7 +427,8 @@ if test "$debug"; then
     latexmk $engine --outdir="$tmpdir_mk" "$master_tex"
 else
     latexmk_log="$tmpdir/$subdir/latexmk.log"
-    latexmk $engine --interaction=nonstopmode --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
+    latexmk $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
+            "$master_tex" </dev/null >"$latexmk_log" 2>&1
 fi
 # Exit on Error
 if ! test -f "$tmpdir_mk/master.pdf"; then
