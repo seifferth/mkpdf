@@ -263,7 +263,7 @@ read_toc() {
             echo    # Fix missing newline at end of file
         }
     fi
-    cat_toc "$2" | while read line; do
+    cat_toc "$2" | while IFS= read line; do
         if test "$yaml_block" = 1; then
             if test "$line" = "---" || test "$line" = "..."; then
                 test $1 = meta && echo "$line" && echo
