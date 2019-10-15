@@ -398,9 +398,9 @@ test -d "$tmpdir/$subdir" || mkdir -p "$tmpdir/$subdir"
 # Run pandoc
 master_tex="$tmpdir/$subdir/master.tex"
 if test "$(get_extension $template)" = "beamer"; then
-    pandoc_options="-t beamer $pandoc_options"
+    pandoc_options="-t beamer-smart $pandoc_options"
 else
-    pandoc_options="-t latex $pandoc_options"
+    pandoc_options="-t latex-smart $pandoc_options"
 fi
 echo "--template=\"$template\" $pandoc_metavars $pandoc_options" > $tmpdir/$subdir/pandoc.options
 eval pandoc --template="$template" $pandoc_metavars $pandoc_options $filenames \
