@@ -424,10 +424,10 @@ echo Running latexmk ...
 test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
 engine="$(get_engine "$master_tex")"
 if test "$debug"; then
-    latexmk $engine --outdir="$tmpdir_mk" "$master_tex"
+    latexmk -cd- $engine --outdir="$tmpdir_mk" "$master_tex"
 else
     latexmk_log="$tmpdir/$subdir/latexmk.log"
-    latexmk $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
+    latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
             "$master_tex" </dev/null >"$latexmk_log" 2>&1
 fi
 # Exit on Error
