@@ -22,6 +22,7 @@
 
 tmpdir="/tmp/mkpdf-$(id -u)"
 pandoc_options="$pandoc_options --file-scope --biblatex --wrap=preserve"
+pandoc_options="$pandoc_options --top-level-division=section"
 #if test "$(which pandoc-crossref 2>/dev/null)"; then
 #    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
 #fi

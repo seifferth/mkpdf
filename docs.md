@@ -63,6 +63,12 @@ templates or in `~/.pandoc/templates` for templates available only for specific
 users. Further information on pandoc templates can be found in pandoc's
 documentation.
 
+It is also worth noting that, by default, mkpdf will turn off pandoc's
+heuristics for determining the top-level-division of a latex document
+and thus ensure that pandoc produces `\section{foo}` as the topmost
+sectioning element. Template authors are encouraged to redefine latex
+sectioning commands as the see fit.
+
 ## LaTeX Engine
 
 Mkpdf uses `xelatex` as the default engine when invoking latexmk. It is
