@@ -424,19 +424,19 @@ test ! -d "$tmpdir_mk" && mkdir "$tmpdir_mk"
 echo Running latexmk ...
 test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
 engine="$(get_engine "$master_tex")"
-if test "$debug"; then
-    latexmk -cd- $engine --outdir="$tmpdir_mk" "$master_tex"
-else
-    latexmk_log="$tmpdir/$subdir/latexmk.log"
-    latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
-            "$master_tex" </dev/null >"$latexmk_log" 2>&1
-fi
+latexmk_log="$tmpdir/$subdir/latexmk.log"
+latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
+    "$master_tex" </dev/null 2>&1 | tee "$latexmk_log" |
+    if test "$debug"; then cat; else cat >/dev/null; fi
 # Exit on Error
 if ! test -f "$tmpdir_mk/master.pdf"; then
-    if ! test "$debug"; then
+    if grep -q '^!' "$latexmk_log"; then
         grep -B1 -A4 '^!' "$latexmk_log"
         echo -e "--- log truncated ---\nSee '$latexmk_log' for more" \
                 "detailed output.\n" | fold -s
+    else
+        echo -e "\nUnable to automatically locate error messages in" \
+                "'$latexmk_log'.\n" | fold -s
     fi | sed 's,^,  ,g' >&2
     echo Latexmk failed to generate output >&2
     exit 1
