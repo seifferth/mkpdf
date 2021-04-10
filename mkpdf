@@ -74,34 +74,6 @@ clean_all() {
     fi
 }
 
-debug_log_loop() {
-    while true; do
-        find "$tmpdir" | grep latexmk.log | while read logfile; do
-        if test "$(cat $logfile | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')"; then
-            echo "$logfile"
-            echo "    is clean (i. e. latexmk finished ok)"
-            echo
-        else
-            cat $logfile
-            echo
-            echo -------------------------------
-            echo Above is the content of $logfile
-            echo -------------------------------
-            read -p "Hit Enter to search for further errors" x </dev/tty
-            echo
-            echo
-            echo
-        fi
-        done
-        echo
-        echo     ______________________
-        read -p "Hit Enter to run again" x </dev/tty
-        echo
-        echo
-        echo
-    done
-}
-
 check_filenames() {
     # Input:    list of filenames as $1, $2, ...
     # Output:   None, but files will be appended to $filenames if they exist
@@ -173,9 +145,6 @@ parse_commandline() {
             case "$1" in
                 -c | --clean )
                     clean_all
-                    exit 0  ;;
-                -d | --debug )
-                    debug_log_loop
                     exit 0  ;;
             esac
         fi
