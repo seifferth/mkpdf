@@ -23,9 +23,7 @@ pandoc understands, such as pandoc's own variant of markdown.
 specified as the only option, all temporary files will be removed.
 
 -d, \--debug
-: Print latexmk's output directly to stdout. If `-d` is specified as the only
-option, an interactive loop will be used to search through all relevant
-logfiles and will display those that didn't, or didn't yet, exit ok.
+: Print latexmk's output directly to stdout.
 
 -o FILENAME, \--output=FILENAME
 : Specify a name for the output file. If this option is specified multiple
