@@ -31,7 +31,7 @@ pandoc_options="$pandoc_options --top-level-division=section"
 #fi
 
 postprocessing() {
-    test "$(which furbishtex 2>/dev/null)" && furbishtex "$1"
+    test "$(which furbishtex 2>/dev/null)" && furbishtex "$1" || true
 }
 
 # Source user-specific configuration
