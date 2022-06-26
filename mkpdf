@@ -373,7 +373,7 @@ else
     pandoc_options="-t latex-smart $pandoc_options"
 fi
 # Use csquotes if the package is included
-pandoc -t latex --template essay-diaz.latex </dev/null |
+pandoc -t latex --template "$template" </dev/null |
     grep -q '\\usepackage\(\[[^\]]*\]\)\?{csquotes}' &&
     pandoc_options="-M csquotes=true $pandoc_options"
 echo "--template=\"$template\" $pandoc_metavars $pandoc_options" > $tmpdir/$subdir/pandoc.options
