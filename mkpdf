@@ -396,9 +396,10 @@ pandoc_options="$(get_citeproc "$tmpdir/$subdir/template") $pandoc_options"
 cat "$tmpdir/$subdir/template" |
     grep -q '\\usepackage\(\[[^\]]*\]\)\?{csquotes}' &&
     pandoc_options="-M csquotes=true $pandoc_options"
-echo "--template=\"$template\" $pandoc_metavars $pandoc_options" > $tmpdir/$subdir/pandoc.options
-eval pandoc --template="$template" $pandoc_metavars $pandoc_options $filenames \
-        -o "$master_tex" || exit 1
+echo "--template=\"$template\" $pandoc_metavars $pandoc_options" \
+    > $tmpdir/$subdir/pandoc.options
+eval pandoc --template="$template" $pandoc_metavars $pandoc_options \
+        $filenames -o "$master_tex" || exit 1
 
 # Run postprocessing (if any)
 if test "$(type postprocessing 2>/dev/null | grep function)"; then
