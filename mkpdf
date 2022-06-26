@@ -21,7 +21,7 @@
 ####################################
 
 tmpdir="/tmp/mkpdf-$(id -u)"
-pandoc_options="$pandoc_options --file-scope --biblatex --wrap=preserve"
+pandoc_options="$pandoc_options --file-scope --wrap=preserve"
 pandoc_options="$pandoc_options --top-level-division=section"
 #if test "$(which pandoc-crossref 2>/dev/null)"; then
 #    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
@@ -291,6 +291,21 @@ get_engine() {
     fi
 }
 
+get_citeproc() {
+    # Input:    path to master.tex file as $1
+    # Output:   pandoc option specifying the format for citations
+    magic_line="$(cat "$1" | grep -i '% *! *TEX *citeproc *=' | head -1)"
+    if test "$(echo "$magic_line" | grep -i 'biblatex')"; then
+        echo --biblatex
+    elif test "$(echo "$magic_line" | grep -i 'natbib')"; then
+        echo --natbib
+    elif test "$(echo "$magic_line" | grep -i 'none')"; then
+        echo --citeproc
+    else        # Default engine
+        echo --biblatex
+    fi
+}
+
 ####################################
 ##	Main Part
 ####################################
@@ -372,8 +387,13 @@ if test "$(get_extension $template)" = "beamer"; then
 else
     pandoc_options="-t latex-smart $pandoc_options"
 fi
+# Print the empty template to subdir for inspection
+pandoc -t latex --template "$template" </dev/null \
+    > "$tmpdir/$subdir/template"
+# Adjust citeproc if specified
+pandoc_options="$(get_citeproc "$tmpdir/$subdir/template") $pandoc_options"
 # Use csquotes if the package is included
-pandoc -t latex --template "$template" </dev/null |
+cat "$tmpdir/$subdir/template" |
     grep -q '\\usepackage\(\[[^\]]*\]\)\?{csquotes}' &&
     pandoc_options="-M csquotes=true $pandoc_options"
 echo "--template=\"$template\" $pandoc_metavars $pandoc_options" > $tmpdir/$subdir/pandoc.options
