@@ -20,7 +20,9 @@
 ##  (Default) Configuration
 ####################################
 
-tmpdir="/tmp/mkpdf-$(id -u)"
+test -n "$TMPDIR" &&
+    tmpdir="$TMPDIR/mkpdf-$(id -u)" ||
+    tmpdir="/tmp/mkpdf-$(id -u)"
 pandoc_options="$pandoc_options --file-scope --wrap=preserve"
 pandoc_options="$pandoc_options --top-level-division=section"
 #if test "$(which pandoc-crossref 2>/dev/null)"; then
