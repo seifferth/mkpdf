@@ -396,7 +396,7 @@ pandoc -t latex --template "$template" </dev/null \
 pandoc_options="$(get_citeproc "$tmpdir/$subdir/template") $pandoc_options"
 # Use csquotes if the package is included
 cat "$tmpdir/$subdir/template" |
-    grep -q '\\usepackage\(\[[^\]]*\]\)\?{csquotes}' &&
+    grep -q '\\usepackage\(\[.*\]\)\?{csquotes}' &&
     pandoc_options="-M csquotes=true $pandoc_options"
 echo "--template=\"$template\" $pandoc_metavars $pandoc_options" \
     > $tmpdir/$subdir/pandoc.options
