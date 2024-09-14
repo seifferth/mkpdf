@@ -449,7 +449,7 @@ else
 fi
 echo Exporting output: $output
 test $mode = dir && cd "$origin"
-cp -f "$tmpdir_mk/master.pdf" "$output"
+cp -f "$tmpdir_mk/master.pdf" "$output" || exit "$?"
 
 # Show preview
 if test "$preview"; then
