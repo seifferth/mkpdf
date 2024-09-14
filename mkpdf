@@ -421,11 +421,10 @@ echo Running latexmk ...
 test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
 engine="$(get_engine "$master_tex")"
 latexmk_log="$tmpdir/$subdir/latexmk.log"
-latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
-    "$master_tex" </dev/null 2>&1 | tee "$latexmk_log" |
-    if test "$debug"; then cat; else cat >/dev/null; fi
-# Exit on Error
-if ! test -f "$tmpdir_mk/master.pdf"; then
+failedfile="$tmpdir/$subdir/latexmk.failed"
+test -f "$failedfile" && rm "$failedfile"
+catch_latexmk_error() {
+    # Exit on Error
     if grep -q '^!' "$latexmk_log"; then
         grep -B1 -A4 '^!' "$latexmk_log"
         echo -e "--- log truncated ---\nSee '$latexmk_log' for more" \
@@ -434,9 +433,13 @@ if ! test -f "$tmpdir_mk/master.pdf"; then
         echo -e "\nUnable to automatically locate error messages in" \
                 "'$latexmk_log'.\n" | fold -s
     fi | sed 's,^,  ,g' >&2
-    echo Latexmk failed to generate output >&2
-    exit 1
-fi
+    echo "Latexmk failed with exit code $1" >&2
+    touch "$failedfile"
+}
+latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
+    "$master_tex" </dev/null 2>&1 || catch_latexmk_error "$?" |
+    tee "$latexmk_log" | if test "$debug"; then cat; else cat >/dev/null; fi
+test -f "$failedfile" && exit 1
 
 # Copy output to destination
 if test "$output"; then
