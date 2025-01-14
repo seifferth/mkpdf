@@ -436,8 +436,8 @@ catch_latexmk_error() {
     echo "Latexmk failed with exit code $1" >&2
     touch "$failedfile"
 }
-latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
-    "$master_tex" </dev/null 2>&1 || catch_latexmk_error "$?" |
+(latexmk -cd- $engine --interaction=nonstopmode --outdir="$tmpdir_mk" \
+    "$master_tex" </dev/null 2>&1 || catch_latexmk_error "$?") |
     tee "$latexmk_log" | if test "$debug"; then cat; else cat >/dev/null; fi
 test -f "$failedfile" && exit 1
 
